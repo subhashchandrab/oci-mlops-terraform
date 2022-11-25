@@ -262,13 +262,13 @@ resource oci_devops_deploy_stage deploy-prod-oke-stage {
 resource oci_devops_build_pipeline build-ml-model-pipeline {
   build_pipeline_parameters {
     items {
-      default_value = oci_datascience_project.mlops-datascience-proj.id
-      description   = "Data Science Project ID"
-      name          = "PROJ_ID"
-    }
+      default_value = "Model OCID"
+      description   = "The OCID of the ML Model which needs to be deployed"
+      name          = "MODEL_ID"
+    }	
     items {
       default_value = "MLOPS_BANK_LOAN_Prediction"
-      description   = "ML Model Display Name"
+      description   = "Display name of the ML Model which needs to be deployed"
       name          = "DISP_NAME"
     }
     items {
@@ -276,6 +276,31 @@ resource oci_devops_build_pipeline build-ml-model-pipeline {
       description   = "AnalyticsBD compartment"
       name          = "COMPARTMENT_ID"
     }
+    items {
+      default_value = local.region_key
+      description   = "OCI Region Key"
+      name          = "REGION_KEY"
+    }
+    items {
+      default_value = "${local.region_key}.ocir.io/${local.namespace}/${local.model_repo_name}"
+      description   = "Display name of the ML Model"
+      name          = "MODEL_OCIR_URL"
+    }
+    items {
+      default_value = var.ocir_username
+      description   = "Display name of the ML Model"
+      name          = "OCIR_USERNAME"
+    }	
+    items {
+      default_value = oci_vault_secret.container-registry-auth-token.id
+      description   = "OCID of the secret for OCIR password/auth token"
+      name          = "OCIR_SECRET_ID"
+    }	
+    items {
+      default_value = var.ocir_url
+      description   = "OCIR URL for the current region"
+      name          = "OCIR_URL"
+    }		
   }
   description  = "build ML Model Container"
   display_name = "build-ml-model-pipeline"
@@ -321,4 +346,74 @@ resource oci_devops_build_pipeline_stage trigger-deployment-pipeline {
   description        = "Trigger Deployment Pipeline"
   display_name       = "trigger-deployment-pipeline"
   is_pass_all_parameters_enabled = "true"
+}
+
+## Code repository changes to update the required files ##
+data "oci_artifacts_container_configuration" "mlops_container_configuration" {
+    #Required
+    compartment_id = "ocid1.compartment.oc1..aaaaaaaau4iwsl57ssezjqftq2pdsjipgihz6vjnggtzeauou2w3v7vlgn2q"
+} 
+
+data "oci_artifacts_container_repository" "test_container_repository" {
+    #Required
+    repository_id = "ocid1.containerrepo.oc1.eu-frankfurt-1.0.apaccpt03.aaaaaaaas2scs5j7sx656bqfthusoxdvqazokkznqnzcimxnsbs4wktpzfyq"
+}
+
+data "oci_identity_region_subscriptions" "current_region_subscriptions" {
+    #Required
+    tenancy_id = var.tenancy_ocid
+    filter {
+      name = "region_name"
+      values = [var.region]
+    }
+}
+
+locals {
+  namespace = data.oci_artifacts_container_configuration.mlops_container_configuration.namespace
+  model_repo_name = oci_artifacts_container_repository.mlops_model.display_name
+  region_key = data.oci_identity_region_subscriptions.current_region_subscriptions.region_subscriptions[0].region_key
+}
+
+locals {
+  encode_user = urlencode(var.ocir_username)
+  encode_auth_token  = urlencode(var.ocir_password)
+}
+
+resource "null_resource" "clonerepo" {
+
+  depends_on = [oci_devops_project.mlops-devops-project, oci_devops_repository.mlops-code-repo]
+
+  provisioner "local-exec" {
+    command = "echo '(1) Cleaning local repo: '; rm -rf ${oci_devops_repository.mlops-code-repo.name}"
+  }
+
+  provisioner "local-exec" {
+    command = "echo '(2) Repo to clone: https://devops.scmservice.${var.region}.oci.oraclecloud.com/namespaces/${local.namespace}/projects/${oci_devops_project.mlops-devops-project.name}/repositories/${oci_devops_repository.mlops-code-repo.name}'"
+  }
+
+  provisioner "local-exec" {
+    command = "echo '(3) Starting git clone command... '; git clone https://${local.encode_user}:${local.encode_auth_token}@devops.scmservice.${var.region}.oci.oraclecloud.com/namespaces/${local.namespace}/projects/${oci_devops_project.mlops-devops-project.name}/repositories/${oci_devops_repository.mlops-code-repo.name};"
+  }
+
+  provisioner "local-exec" {
+    command = "echo '(4) Finishing git clone command: '; ls -latr ${oci_devops_repository.mlops-code-repo.name}"
+  }
+}
+
+resource "null_resource" "copyfiles" {
+
+  depends_on = [null_resource.clonerepo]
+
+  provisioner "local-exec" {
+    command = "mkdir -p ${oci_devops_repository.mlops-code-repo.name}/src; cp -pr src/* ${oci_devops_repository.mlops-code-repo.name}/src; mkdir -p ${oci_devops_repository.mlops-code-repo.name}/deploy; cp -pr deploy/* ${oci_devops_repository.mlops-code-repo.name}/deploy; mkdir -p ${oci_devops_repository.mlops-code-repo.name}/files; cp -pr files/* ${oci_devops_repository.mlops-code-repo.name}/files; mkdir -p ${oci_devops_repository.mlops-code-repo.name}/data; cp -pr data/* ${oci_devops_repository.mlops-code-repo.name}/data; mkdir -p ${oci_devops_repository.mlops-code-repo.name}/build; cp -pr build/* ${oci_devops_repository.mlops-code-repo.name}/build;"
+  }
+}
+
+resource "null_resource" "pushcode" {
+
+  depends_on = [null_resource.copyfiles]
+
+  provisioner "local-exec" {
+    command = "cd ./${oci_devops_repository.mlops-code-repo.name}; git config --global user.email ${var.ocir_email}; git config --global user.name '${var.ocir_username}';git add .; git commit -m 'added latest files'; git push origin '${oci_devops_repository.mlops-code-repo.default_branch}'"
+  }
 }
