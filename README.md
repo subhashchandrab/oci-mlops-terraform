@@ -64,6 +64,11 @@ These OCI resources will be deployed by this stack:
     - Key x1
 - Vault secret x1
 
+## **Steps to be performed after succesfully applying Resource Manager Stack** 
+
+1. In case if you don't have the administrator access, make sure that you create the dynamic group and IAM policy in the root compartment as described in the stack output section
+2. Add the content of this repository into the repository created in the OCI devops project
+
 ## **Completing Demo Setup Tasks**
 
 1. Import APEX bank loan application [here](apex_import/README.md#apex-setup-procedures)
