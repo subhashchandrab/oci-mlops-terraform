@@ -2,7 +2,8 @@
 
 ## **Architecture Diagram**
 
-![MLOps Architecture Diagram](img/mlops-arch-diagram.png)
+![mlops-arch-diagram](https://user-images.githubusercontent.com/22868753/203905815-698cadde-fba9-4a95-a9d0-6653fe91c55f.png)
+
 
 ## **Introduction**
 
