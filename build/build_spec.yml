@@ -7,7 +7,8 @@ env:
   exportedVariables:
     - BUILDRUN_HASH
   vaultVariables:
-    OCIRCRED: "ocid1.vaultsecret.oc1.eu-frankfurt-1.amaaaaaap77apcqavbfmiedzdqowbetdchbglgssdibmctoxg22hehlnfhpq"
+#   Update the OCID of the secret created 
+    OCIRCRED: ${OCIR_SECRET_ID}
 
 steps:
   - type: Command
@@ -43,7 +44,7 @@ steps:
   - type: Command
     name: "Build Docker image for ML Model"
     command: |
-      docker build -t fra.ocir.io/apaccpt03/mlops-model:${BUILDRUN_HASH} src/ml-model/.
+      docker build -t ${MODEL_OCIR_URL}:${BUILDRUN_HASH} src/ml-model/.
     onFailure:
       - type: Command
         command: |
@@ -55,9 +56,9 @@ steps:
     name: "Push ML Model Docker Image to OCIR"
     command: |
       echo "Login to OCIR"
-      docker login fra.ocir.io -u apaccpt03/oracleidentitycloudservice/subhash.chandra.budde@oracle.com -p ${OCIRCRED}
+      docker login ${OCIR_URL} -u ${OCIR_USERNAME} -p ${OCIRCRED}
       echo "Push ML Model image to OCIR"
-      docker push fra.ocir.io/apaccpt03/mlops-model:${BUILDRUN_HASH}
+      docker push ${MODEL_OCIR_URL}:${BUILDRUN_HASH}
     onFailure:
       - type: Command
         command: |
