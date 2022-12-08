@@ -14,7 +14,7 @@ terraform {
     }
     oci = {
       source = "oracle/oci"
-      version = "4.93.0"
+      version = "4.101.0"
     }
   }
   required_version = ">= 1.0"
@@ -27,6 +27,12 @@ provider "kubernetes" {
 provider "oci" {
   region          = var.region
   tenancy_ocid    = var.tenancy_ocid
+}
+
+provider "oci" {
+  alias        = "home_region"
+  tenancy_ocid = var.tenancy_ocid
+  region       = data.oci_identity_region_subscriptions.home_region_filter.region_subscriptions[0].region_name
 }
 
 variable "compartment_ocid" {
@@ -141,6 +147,12 @@ variable "mlops_adb_admin_password" {
   description = "Password for ADB Admin"
 }
 
+variable "tenancy_admin" {
+  description = "Flag to check whether the user has administrator access for the current tenancy"
+  type        = bool
+  default     = false
+}
+
 data "oci_core_services" "all_services" {
 }
 
@@ -159,4 +171,12 @@ data oci_identity_availability_domain AD-3 {
 
 data oci_objectstorage_namespace os_namespace {
   compartment_id = var.compartment_ocid
+}
+
+data "oci_identity_region_subscriptions" "home_region_filter" {
+    tenancy_id = var.tenancy_ocid
+    filter {
+      name = "is_home_region"
+      values = [true]
+    }
 }
