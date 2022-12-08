@@ -273,7 +273,7 @@ resource oci_devops_build_pipeline build-ml-model-pipeline {
     }
     items {
       default_value = var.compartment_ocid
-      description   = "AnalyticsBD compartment"
+      description   = "OCID of the compartment where the model exists"
       name          = "COMPARTMENT_ID"
     }
     items {
