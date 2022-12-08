@@ -100,7 +100,7 @@ resource "oci_devops_deploy_pipeline" "mlops-deploy-pipeline" {
         }
         items {
             name = "dataset_2"
-            default_value = "input_test_data_set1_true.json"
+            default_value = "input_test_data_set1_false.json"
             description = "json dataset for testing"
         }
         items {
@@ -282,7 +282,7 @@ resource oci_devops_build_pipeline build-ml-model-pipeline {
       name          = "REGION_KEY"
     }
     items {
-      default_value = "${local.region_key}.ocir.io/${local.namespace}/${local.model_repo_name}"
+      default_value = "${var.ocir_url}/${local.namespace}/${local.model_repo_name}"
       description   = "Display name of the ML Model"
       name          = "MODEL_OCIR_URL"
     }
