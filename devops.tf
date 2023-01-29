@@ -351,12 +351,12 @@ resource oci_devops_build_pipeline_stage trigger-deployment-pipeline {
 ## Code repository changes to update the required files ##
 data "oci_artifacts_container_configuration" "mlops_container_configuration" {
     #Required
-    compartment_id = "ocid1.compartment.oc1..aaaaaaaau4iwsl57ssezjqftq2pdsjipgihz6vjnggtzeauou2w3v7vlgn2q"
+    compartment_id = var.compartment_ocid
 } 
 
 data "oci_artifacts_container_repository" "test_container_repository" {
     #Required
-    repository_id = "ocid1.containerrepo.oc1.eu-frankfurt-1.0.apaccpt03.aaaaaaaas2scs5j7sx656bqfthusoxdvqazokkznqnzcimxnsbs4wktpzfyq"
+    repository_id = oci_devops_repository.mlops-code-repo.id
 }
 
 data "oci_identity_region_subscriptions" "current_region_subscriptions" {
